@@ -1,0 +1,192 @@
+
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta name="viewport" content="width=320; user-scalable=no" />
+<meta http-equiv="Content-type" content="text/html; charset=utf-8">
+<title>PhoneGap_File_API</title>
+
+<link rel="stylesheet" href="http://code.jquery.com/mobile/1.1.0/jquery.mobile-1.1.0.min.css" />
+<script src="http://code.jquery.com/jquery-1.6.4.min.js"></script>
+<script src="http://code.jquery.com/mobile/1.1.0/jquery.mobile-1.1.0.min.js"></script>
+
+
+<script type="text/javascript" charset="utf-8" src="phonegap-1.4.1.js"></script>
+<script type="text/javascript" charset="utf-8">
+
+
+var fileSystem;
+
+//generic getById
+function getById(id) {
+    return document.querySelector(id);
+}
+
+//generic content logger
+function logit(s) {
+    
+     getById("#view").innerHTML += s;
+     $.mobile.changePage("#page2", "slide");
+  
+}
+
+//generic error handler
+function onError(e) {
+    getById("#content").innerHTML = "<h2>Error</h2>"+e.toString();
+}
+
+function doDeleteFile(e) {
+    fileSystem.root.getFile("test.txt", {create:true}, function(f) {
+        f.remove(function() {
+            logit("File removed<p/>"); 
+        });
+    }, onError);
+}
+
+function metadataFile(m) {
+    logit("File was last modified "+m.modificationTime+"<p/>");    
+}
+
+function doMetadataFile(e) {
+    fileSystem.root.getFile("test.txt", {create:true}, function(f) {
+        f.getMetadata(metadataFile,onError);
+    }, onError);
+}
+
+function readFile(f) {
+    reader = new FileReader();
+    reader.onloadend = function(e) {
+        console.log("go to end");
+        logit("<pre>" + e.target.result + "</pre><p/>");
+    }
+    reader.readAsText(f);
+}
+
+function doReadFile(e) {
+    fileSystem.root.getFile("test.txt", {create:true}, readFile, onError);
+}
+
+function appendFile(f) {
+
+    f.createWriter(function(writerOb) {
+        writerOb.onwrite=function() {
+            logit("Done writing to file.<p/>");
+        }
+        //go to the end of the file...
+        writerOb.seek(writerOb.length);
+        writerOb.write("Test at "+new Date().toString() + "\n");
+    })
+
+}
+
+function doAppendFile(e) {
+    fileSystem.root.getFile("test.txt", {create:true}, appendFile, onError);
+}
+
+function gotFiles(entries) {
+    var s = "";
+    for(var i=0,len=entries.length; i<len; i++) {
+        //entry objects include: isFile, isDirectory, name, fullPath
+        s+= entries[i].fullPath;
+        if (entries[i].isFile) {
+            s += " [F]";
+        }
+        else {
+            s += " [D]";
+        }
+        s += "<br/>";
+        
+    }
+    s+="<p/>";
+    logit(s);
+}
+
+function doDirectoryListing(e) {
+    //get a directory reader from our FS
+    var dirReader = fileSystem.root.createReader();
+
+    dirReader.readEntries(gotFiles,onError);        
+}
+
+
+function viewDetails() {
+
+    //request the File system details
+     logit( "Got the file system: "+fileSystem.name +"<br/>" +
+                                    "root entry name is "+fileSystem.root.name + "<p/>") 
+    
+}
+
+
+
+function onFSSuccess(fs) {
+    fileSystem = fs;
+
+    getById("#viewFilesystemDetails").addEventListener("touchstart",viewDetails); 
+    getById("#dirListingButton").addEventListener("touchstart",doDirectoryListing);            
+    getById("#addFileButton").addEventListener("touchstart",doAppendFile);            
+    getById("#readFileButton").addEventListener("touchstart",doReadFile);            
+    getById("#metadataFileButton").addEventListener("touchstart",doMetadataFile);            
+    getById("#deleteFileButton").addEventListener("touchstart",doDeleteFile);            
+    
+   // logit( "Got the file system: "+fileSystem.name +"<br/>" +
+   //                                "root entry name is "+fileSystem.root.name + "<p/>")    
+
+   
+} 
+
+function onDeviceReady() {
+
+    //request the persistent file system
+    window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, onFSSuccess, onError);
+    
+}
+
+function init() {
+    document.addEventListener("deviceready", onDeviceReady, true);
+} 
+
+</script>
+</head>
+
+
+<body onload="init()" >
+
+<div data-role="page" id="page1">
+
+    <div data-role="header">
+		<h1>PhoneGap File API</h1>
+	</div>
+	
+	
+	 <button id="viewFilesystemDetails" data-inline="true" data-theme="e" data-icon="search" data-iconpos="right"> View File System Details </button> 
+     <button id="addFileButton" data-inline="true" data-theme="e" data-icon="plus" data-iconpos="right"> Create/Append to File </button> 
+     <button id="readFileButton" data-inline="true" data-theme="e" data-icon="info" data-iconpos="right">  Read the File  </button> 
+     <button id="metadataFileButton" data-inline="true" data-theme="e" data-icon="star" data-iconpos="right"> Get File's Metadata </button> 
+     <button id="deleteFileButton" data-inline="true" data-theme="e" data-icon="delete" data-iconpos="right"> Delete the File</button> 
+     <button id="dirListingButton" data-inline="true" data-theme="e" data-icon="grid" data-iconpos="right"> Show Device Directory List </button> 
+    
+	<div id="content"></div> 
+	
+	<div data-role="footer">
+		<h4>Page Footer</h4>
+	</div>
+
+</div> <!--Page 1-->
+
+
+<div data-role="page" id="page2">
+    <div data-role="header">
+		<h1>Second Page</h1>
+	</div>
+   
+   <div data-role="content" id="view"> 
+    
+   <p><a href="#page1" data-direction="reverse" data-role="button" data-icon="back" data-theme="b">Back to previous page</a></p>
+   </div>
+   
+</div> <!--Page 2-->
+
+	
+</body>
+</html>
